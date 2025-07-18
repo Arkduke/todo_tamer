@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager - Time-Aware Task Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .task-form {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #5a67d8;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .task-buckets {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .bucket {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .bucket-header {
+            padding: 20px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            text-align: center;
+            color: white;
+        }
+
+        .bucket-upcoming .bucket-header {
+            background: #48bb78;
+        }
+
+        .bucket-completed .bucket-header {
+            background: #667eea;
+        }
+
+        .bucket-missed .bucket-header {
+            background: #f56565;
+        }
+
+        .bucket-content {
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .task-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #e2e8f0;
+            transition: all 0.3s;
+        }
+
+        .task-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .task-item.urgency-high {
+            border-left-color: #f56565;
+        }
+
+        .task-item.urgency-medium {
+            border-left-color: #ed8936;
+        }
+
+        .task-item.urgency-low {
+            border-left-color: #48bb78;
+        }
+
+        .task-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #2d3748;
+        }
+
+        .task-description {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .task-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .task-deadline {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .task-actions button:not(.task-ai-button) {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn-complete {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-complete:hover {
+            background: #38a169;
+        }
+
+        .btn-incomplete {
+            background: #ed8936;
+            color: white;
+        }
+
+        .btn-incomplete:hover {
+            background: #dd6b20;
+        }
+
+        .btn-delete {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #e53e3e;
+        }
+
+        .urgency-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .urgency-high {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .urgency-medium {
+            background: #feebc8;
+            color: #c05621;
+        }
+
+        .urgency-low {
+            background: #c6f6d5;
+            color: #2f855a;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            background: #c6f6d5;
+            color: #2f855a;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        /* AI Enhancement Styles */
+        .ai-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .ai-section h2 {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ai-input-group {
+            margin-bottom: 20px;
+        }
+
+        .ai-input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .ai-input-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .ai-input-group textarea::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .ai-input-group textarea:focus {
+            outline: none;
+            border-color: white;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .ai-button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .ai-button:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: white;
+        }
+
+        .ai-button:disabled {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.2);
+            cursor: not-allowed;
+        }
+
+        .ai-suggestions {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            border-left: 4px solid white;
+        }
+
+        .ai-suggestions h4 {
+            margin-bottom: 10px;
+            color: white;
+        }
+
+        .ai-suggestions ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .ai-suggestions li {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .ai-suggestions li:last-child {
+            border-bottom: none;
+        }
+
+        .ai-insight-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #48bb78;
+        }
+
+        .ai-insight-card h4 {
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .ai-insight-card p {
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 8px;
+        }
+
+        .ai-conflict-warning {
+            background: rgba(245, 101, 101, 0.2);
+            border-left-color: #f56565;
+            border: 1px solid rgba(245, 101, 101, 0.3);
+        }
+
+        .ai-loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .ai-loading::before {
+            content: "🤖";
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .subtask-item {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 3px solid #48bb78;
+        }
+
+        .ai-toggle {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .ai-toggle:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .ai-toggle.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .ai-reminder-badge {
+            display: inline-block;
+            background: #48bb78;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .ai-reminder-badge:hover {
+            background: #38a169;
+        }
+
+        .task-ai-button {
+            background: linear-gradient(45deg, #667eea, #764ba2) !important;
+            color: white !important;
+            border: none !important;
+            padding: 8px 12px !important;
+            border-radius: 6px !important;
+            font-size: 0.8rem !important;
+            cursor: pointer !important;
+            transition: all 0.3s !important;
+            margin-left: 5px !important;
+            font-weight: 500 !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+            display: inline-block !important;
+        }
+
+        .task-ai-button:hover {
+            background: linear-gradient(45deg, #5a67d8, #6b46c1) !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
+        }
+
+        .task-ai-button:active {
+            transform: translateY(0) !important;
+        }
+
+        .task-ai-button.breakdown {
+            background: linear-gradient(45deg, #48bb78, #38a169) !important;
+        }
+
+        .task-ai-button.breakdown:hover {
+            background: linear-gradient(45deg, #38a169, #2f855a) !important;
+        }
+
+        .task-ai-button.enhance {
+            background: linear-gradient(45deg, #ed8936, #dd6b20) !important;
+        }
+
+        .task-ai-button.enhance:hover {
+            background: linear-gradient(45deg, #dd6b20, #c05621) !important;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .task-buckets {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .task-meta {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .task-actions {
+                margin-top: 10px;
+                gap: 6px;
+            }
+
+            .task-ai-button {
+                font-size: 0.75rem;
+                padding: 6px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Task Manager</h1>
+            <p>Time-Aware Task Management System</p>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="total-tasks">0</div>
+                <div class="stat-label">Total Tasks</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="upcoming-tasks">0</div>
+                <div class="stat-label">Upcoming</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="completed-tasks">0</div>
+                <div class="stat-label">Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="missed-tasks">0</div>
+                <div class="stat-label">Missed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="urgent-tasks">0</div>
+                <div class="stat-label">High Priority</div>
+            </div>
+        </div>
+
+        <div class="task-form">
+            <h2>Add New Task</h2>
+            <form id="task-form">
+                <div class="form-group">
+                    <label for="title">Task Title *</label>
+                    <input type="text" id="title" name="title" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" placeholder="Optional task description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="deadline">Deadline *</label>
+                    <input type="datetime-local" id="deadline" name="deadline" required>
+                </div>
+                <button type="submit" class="btn">Add Task</button>
+            </form>
+        </div>
+
+        <div id="message"></div>
+
+        <div class="task-buckets">
+            <div class="bucket bucket-upcoming">
+                <div class="bucket-header">
+                    📅 Upcoming Tasks
+                </div>
+                <div class="bucket-content" id="upcoming-tasks-list">
+                    <div class="loading">Loading tasks...</div>
+                </div>
+            </div>
+
+            <div class="bucket bucket-completed">
+                <div class="bucket-header">
+                    ✅ Completed Tasks
+                </div>
+                <div class="bucket-content" id="completed-tasks-list">
+                    <div class="loading">Loading tasks...</div>
+                </div>
+            </div>
+
+            <div class="bucket bucket-missed">
+                <div class="bucket-header">
+                    ⏰ Missed Tasks
+                </div>
+                <div class="bucket-content" id="missed-tasks-list">
+                    <div class="loading">Loading tasks...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI-Powered Task Creation -->
+        <div class="ai-section">
+            <h2>🤖 AI Task Assistant</h2>
+            <div class="ai-input-group">
+                <label for="ai-natural-input">Describe what you need to do in natural language:</label>
+                <textarea 
+                    id="ai-natural-input" 
+                    placeholder="Example: 'I need to prepare a presentation for Monday's client meeting about our new product features and send follow-up emails to the team'"
+                ></textarea>
+            </div>
+            <button onclick="createTaskFromAI()" class="ai-button" id="ai-create-btn">🎯 Create Task with AI</button>
+            <button onclick="toggleAIInsights()" class="ai-toggle" id="ai-insights-toggle">📊 Show AI Insights</button>
+            <button onclick="checkTaskConflicts()" class="ai-button" id="ai-conflicts-btn">⚠️ Check Conflicts</button>
+            
+            <div id="ai-suggestions" style="display: none;"></div>
+            <div id="ai-insights-panel" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        // API configuration
+        const API_BASE_URL = '/api/tasks';
+        const STATS_URL = '/api/tasks/stats';
+        const BUCKETS_URL = '/api/tasks/buckets';
+
+        // DOM elements
+        const taskForm = document.getElementById('task-form');
+        const messageDiv = document.getElementById('message');
+        const upcomingTasksList = document.getElementById('upcoming-tasks-list');
+        const completedTasksList = document.getElementById('completed-tasks-list');
+        const missedTasksList = document.getElementById('missed-tasks-list');
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStats();
+            loadTasks();
+            
+            // Set minimum datetime to current time
+            const now = new Date();
+            const minDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            document.getElementById('deadline').min = minDateTime;
+            
+            // Auto-refresh every 30 seconds
+            setInterval(() => {
+                loadStats();
+                loadTasks();
+            }, 30000);
+        });
+
+        // Handle form submission
+        taskForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(taskForm);
+            const taskData = {
+                title: formData.get('title'),
+                description: formData.get('description'),
+                deadline: formData.get('deadline')
+            };
+
+            try {
+                const response = await fetch(API_BASE_URL + '/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(taskData)
+                });
+
+                if (response.ok) {
+                    showMessage('Task created successfully!', 'success');
+                    taskForm.reset();
+                    loadStats();
+                    loadTasks();
+                } else {
+                    const error = await response.json();
+                    showMessage(`Error: ${JSON.stringify(error)}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        });
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch(STATS_URL + '/');
+                const stats = await response.json();
+                
+                document.getElementById('total-tasks').textContent = stats.total;
+                document.getElementById('upcoming-tasks').textContent = stats.upcoming;
+                document.getElementById('completed-tasks').textContent = stats.completed;
+                document.getElementById('missed-tasks').textContent = stats.missed;
+                document.getElementById('urgent-tasks').textContent = stats.high_urgency;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Load tasks organized by buckets
+        async function loadTasks() {
+            try {
+                const response = await fetch(BUCKETS_URL + '/');
+                const buckets = await response.json();
+                
+                renderTasks(buckets.upcoming, upcomingTasksList);
+                renderTasks(buckets.completed, completedTasksList);
+                renderTasks(buckets.missed, missedTasksList);
+            } catch (error) {
+                console.error('Error loading tasks:', error);
+                showMessage('Error loading tasks', 'error');
+            }
+        }
+
+        // Render tasks in a bucket
+        function renderTasks(tasks, container) {
+            if (!tasks || tasks.length === 0) {
+                container.innerHTML = '<div class="empty-state">No tasks in this bucket</div>';
+                return;
+            }
+
+            container.innerHTML = tasks.map(task => `
+                <div class="task-item urgency-${task.urgency_level}">
+                    <div class="task-title">
+                        ${task.title}
+                        ${task.urgency_level === 'high' || task.urgency_level === 'medium' ? 
+                            `<span class="ai-reminder-badge" onclick="getAIReminder(${task.id})" title="Get AI Reminder">🔔</span>` : ''}
+                    </div>
+                    ${task.description ? `<div class="task-description">${task.description}</div>` : ''}
+                    <div class="task-meta">
+                        <div class="task-deadline">
+                            📅 ${formatDeadline(task.deadline)}
+                            ${task.urgency_level !== 'completed' && task.urgency_level !== 'missed' ? 
+                                `<span class="urgency-badge urgency-${task.urgency_level}">${task.urgency_level}</span>` : ''}
+                        </div>
+                        <div class="task-actions">
+                            ${!task.is_completed ? 
+                                `<button class="btn-complete" onclick="markCompleted(${task.id})">Complete</button>` :
+                                `<button class="btn-incomplete" onclick="markIncomplete(${task.id})">Undo</button>`
+                            }
+                            <button class="btn-delete" onclick="deleteTask(${task.id})">Delete</button>
+                            <button class="task-ai-button breakdown" onclick="breakdownTask(${task.id})" title="Break down into subtasks">🤖 Breakdown</button>
+                            <button class="task-ai-button enhance" onclick="enhanceTask(${task.id})" title="Enhance with AI suggestions">✨ Enhance</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Mark task as completed
+        async function markCompleted(taskId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/${taskId}/mark_completed/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (response.ok) {
+                    showMessage('Task marked as completed!', 'success');
+                    loadStats();
+                    loadTasks();
+                } else {
+                    showMessage('Error marking task as completed', 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Mark task as incomplete
+        async function markIncomplete(taskId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/${taskId}/mark_incomplete/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (response.ok) {
+                    showMessage('Task marked as incomplete!', 'success');
+                    loadStats();
+                    loadTasks();
+                } else {
+                    showMessage('Error marking task as incomplete', 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Delete task
+        async function deleteTask(taskId) {
+            if (!confirm('Are you sure you want to delete this task?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/${taskId}/`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showMessage('Task deleted successfully!', 'success');
+                    loadStats();
+                    loadTasks();
+                } else {
+                    showMessage('Error deleting task', 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Show message
+        function showMessage(message, type) {
+            messageDiv.innerHTML = `<div class="${type}">${message}</div>`;
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 3000);
+        }
+
+        // Format deadline display
+        function formatDeadline(deadline) {
+            const date = new Date(deadline);
+            const now = new Date();
+            const diffTime = date - now;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            if (diffDays < 0) {
+                return `${dateStr} (${Math.abs(diffDays)} days ago)`;
+            } else if (diffDays === 0) {
+                return `${dateStr} (Today)`;
+            } else if (diffDays === 1) {
+                return `${dateStr} (Tomorrow)`;
+            } else {
+                return `${dateStr} (in ${diffDays} days)`;
+            }
+        }
+
+        // AI-Powered Functions
+        
+        // Create task from natural language
+        async function createTaskFromAI() {
+            const input = document.getElementById('ai-natural-input').value.trim();
+            const button = document.getElementById('ai-create-btn');
+            
+            if (!input) {
+                showMessage('Please enter a task description in natural language', 'error');
+                return;
+            }
+            
+            button.disabled = true;
+            button.innerHTML = '<span class="ai-loading">🤖 Processing...</span>';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/ai_create/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ natural_language: input })
+                });
+                
+                const aiResult = await response.json();
+                
+                if (response.ok) {
+                    showMessage('Task created successfully with AI!', 'success');
+                    document.getElementById('ai-natural-input').value = '';
+                    showAISuggestions(aiResult);
+                    loadStats();
+                    loadTasks();
+                } else {
+                    showMessage(`Error: ${aiResult.error || 'Failed to create task'}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            } finally {
+                button.disabled = false;
+                button.innerHTML = '🎯 Create Task with AI';
+            }
+        }
+
+        // Breakdown task into subtasks
+        async function breakdownTask(taskId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/${taskId}/ai_breakdown/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const breakdown = await response.json();
+                
+                if (response.ok) {
+                    showTaskBreakdown(breakdown);
+                } else {
+                    showMessage(`Error: ${breakdown.error || 'Failed to breakdown task'}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Enhance task with AI suggestions
+        async function enhanceTask(taskId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/${taskId}/ai_enhance/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const enhancement = await response.json();
+                
+                if (response.ok) {
+                    showTaskEnhancement(enhancement);
+                } else {
+                    showMessage(`Error: ${enhancement.error || 'Failed to enhance task'}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Show AI suggestions
+        function showAISuggestions(aiResult) {
+            const suggestionsDiv = document.getElementById('ai-suggestions');
+            
+            let html = '<div class="ai-suggestions"><h4>🎯 AI Suggestions</h4>';
+            
+            if (aiResult.subtasks && aiResult.subtasks.length > 0) {
+                html += '<h5>Suggested Subtasks:</h5><ul>';
+                aiResult.subtasks.forEach(subtask => {
+                    html += `<li>${subtask}</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            if (aiResult.insights && aiResult.insights.length > 0) {
+                html += '<h5>AI Insights:</h5><ul>';
+                aiResult.insights.forEach(insight => {
+                    html += `<li>${insight}</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            html += '</div>';
+            suggestionsDiv.innerHTML = html;
+            suggestionsDiv.style.display = 'block';
+        }
+
+        // Show task breakdown
+        function showTaskBreakdown(breakdown) {
+            const suggestionsDiv = document.getElementById('ai-suggestions');
+            
+            let html = '<div class="ai-suggestions"><h4>🔧 Task Breakdown</h4>';
+            
+            if (breakdown.subtasks && breakdown.subtasks.length > 0) {
+                html += '<h5>Subtasks:</h5><ul>';
+                breakdown.subtasks.forEach(subtask => {
+                    html += `<li>${subtask}</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            if (breakdown.timeline) {
+                html += `<h5>Estimated Timeline:</h5><p>${breakdown.timeline}</p>`;
+            }
+            
+            html += '</div>';
+            suggestionsDiv.innerHTML = html;
+            suggestionsDiv.style.display = 'block';
+        }
+
+        // Show task enhancement
+        function showTaskEnhancement(enhancement) {
+            const suggestionsDiv = document.getElementById('ai-suggestions');
+            
+            let html = '<div class="ai-suggestions"><h4>✨ Task Enhancement</h4>';
+            
+            if (enhancement.suggestions && enhancement.suggestions.length > 0) {
+                html += '<h5>Enhancement Suggestions:</h5><ul>';
+                enhancement.suggestions.forEach(suggestion => {
+                    html += `<li>${suggestion}</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            if (enhancement.optimizations && enhancement.optimizations.length > 0) {
+                html += '<h5>Optimizations:</h5><ul>';
+                enhancement.optimizations.forEach(optimization => {
+                    html += `<li>${optimization}</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            html += '</div>';
+            suggestionsDiv.innerHTML = html;
+            suggestionsDiv.style.display = 'block';
+        }
+
+        // Toggle AI insights
+        function toggleAIInsights() {
+            const panel = document.getElementById('ai-insights-panel');
+            const button = document.getElementById('ai-insights-toggle');
+            
+            if (panel.style.display === 'none') {
+                loadAIInsights();
+                panel.style.display = 'block';
+                button.textContent = '📊 Hide AI Insights';
+                button.classList.add('active');
+            } else {
+                panel.style.display = 'none';
+                button.textContent = '📊 Show AI Insights';
+                button.classList.remove('active');
+            }
+        }
+
+        // Load AI insights
+        async function loadAIInsights() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/ai_insights/`);
+                const insights = await response.json();
+                
+                if (response.ok) {
+                    displayAIInsights(insights);
+                } else {
+                    showMessage('Error loading AI insights', 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Display AI insights
+        function displayAIInsights(insights) {
+            const panel = document.getElementById('ai-insights-panel');
+            
+            let html = '<div class="ai-insights">';
+            
+            if (insights.productivity_score) {
+                html += `<div class="ai-insight-card">
+                    <h4>📊 Productivity Score</h4>
+                    <p>${insights.productivity_score}%</p>
+                </div>`;
+            }
+            
+            if (insights.task_patterns && insights.task_patterns.length > 0) {
+                html += '<div class="ai-insight-card"><h4>🔍 Task Patterns</h4>';
+                insights.task_patterns.forEach(pattern => {
+                    html += `<p>${pattern}</p>`;
+                });
+                html += '</div>';
+            }
+            
+            if (insights.recommendations && insights.recommendations.length > 0) {
+                html += '<div class="ai-insight-card"><h4>💡 Recommendations</h4>';
+                insights.recommendations.forEach(rec => {
+                    html += `<p>${rec}</p>`;
+                });
+                html += '</div>';
+            }
+            
+            html += '</div>';
+            panel.innerHTML = html;
+        }
+
+        // Check task conflicts
+        async function checkTaskConflicts() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/check_conflicts/`);
+                const conflicts = await response.json();
+                
+                if (response.ok) {
+                    displayTaskConflicts(conflicts);
+                } else {
+                    showMessage('Error checking task conflicts', 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Display task conflicts
+        function displayTaskConflicts(conflicts) {
+            const suggestionsDiv = document.getElementById('ai-suggestions');
+            
+            let html = '<div class="ai-suggestions"><h4>⚠️ Task Conflicts</h4>';
+            
+            if (conflicts.conflicts && conflicts.conflicts.length > 0) {
+                html += '<div class="ai-conflict-warning">';
+                conflicts.conflicts.forEach(conflict => {
+                    html += `<p>${conflict}</p>`;
+                });
+                html += '</div>';
+            } else {
+                html += '<p>No conflicts detected! 🎉</p>';
+            }
+            
+            html += '</div>';
+            suggestionsDiv.innerHTML = html;
+            suggestionsDiv.style.display = 'block';
+        }
+
+        // Get AI reminder for task
+        async function getAIReminder(taskId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/${taskId}/ai_reminder/`);
+                const reminder = await response.json();
+                
+                if (response.ok) {
+                    showMessage(`AI Reminder: ${reminder.message}`, 'success');
+                } else {
+                    showMessage('Error getting AI reminder', 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
